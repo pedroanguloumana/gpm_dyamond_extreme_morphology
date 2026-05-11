@@ -94,7 +94,7 @@ class BinnedQuantileDelta:
         p = (np.sum(np.abs(random_deltas) >= np.abs(delta)) + 1) / (self.n_perm + 1)
         return p
 
-    def plot(self, xlabel, ylabel, title, cmap, norm, xscale='log', ax=None, add_text=True):
+    def plot(self, xlabel, ylabel, title, cmap, norm, xscale='log', ax=None, add_text=True, return_p=False):
         if ax is None:
             fig, ax = plt.subplots(figsize=(4, 3))
         else:
@@ -146,5 +146,6 @@ class BinnedQuantileDelta:
                 bbox=dict(facecolor='wheat', edgecolor='black', boxstyle='round,pad=0.3',)
             )
         print(f'{title} significant-bin mean: {sig_mean:.3f}')
-
+        if return_p:
+            return fig, ax, s, sig_mean, p
         return fig, ax, s, sig_mean

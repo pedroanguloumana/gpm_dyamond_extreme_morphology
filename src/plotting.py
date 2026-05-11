@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import matplotlib as mpl
@@ -55,10 +56,13 @@ def plot_mean_stat(
     density: bool = False,
     ax: plt.Axes = None,
     return_data: bool = False,
+    figsize: tuple = (4,3),
+    return_colorbar_separate: bool = False,
+    cbar_kwargs: dict = None,
     **kwargs,
     ):
     if ax is None:
-        fig, ax = plt.subplots(figsize=(4,3))
+        fig, ax = plt.subplots(figsize=figsize)
     else:
         fig = ax.figure
     data = stats.binned_statistic_2d(
@@ -79,7 +83,35 @@ def plot_mean_stat(
         norm=norm,
         **kwargs,
     )
-    cb = fig.colorbar(im, extend='both')
+        # Defaults that the user can override via cbar_kwargs.
+    cbar_kwargs = {} if cbar_kwargs is None else dict(cbar_kwargs)
+
+    if return_colorbar_separate:
+        # Pull figsize out of cbar_kwargs if provided, else default based on orientation.
+        orientation = cbar_kwargs.get('orientation', 'horizontal')
+        default_cbar_figsize = (4, 0.4) if orientation == 'horizontal' else (0.4, 4)
+        cbar_figsize = cbar_kwargs.pop('cbar_figsize', default_cbar_figsize)
+
+        cbar_defaults = {'orientation': 'horizontal', 'extend': 'both'}
+        cbar_defaults.update(cbar_kwargs)
+
+        cbar_fig, cbar_ax = plt.subplots(figsize=cbar_figsize)
+        cbar_fig.colorbar(
+            mpl.cm.ScalarMappable(norm=norm, cmap=cmap),
+            cax=cbar_ax,
+            **cbar_defaults,
+        )
+        if cbar_defaults['orientation'] == 'horizontal':
+            cbar_fig.subplots_adjust(left=0.05, right=0.95, bottom=0.5, top=0.9)
+        else:
+            cbar_fig.subplots_adjust(left=0.1, right=0.5, bottom=0.05, top=0.95)
+    else:
+        cbar_defaults = {'extend': 'both'}
+        cbar_defaults.update(cbar_kwargs)
+        cb = fig.colorbar(im, **cbar_defaults)
+
+    if return_data and return_colorbar_separate:
+        return fig, ax, cbar_fig, cbar_ax, data
     if return_data:
         return fig, ax, data
     else:
