@@ -6,7 +6,7 @@ import os
 import pickle
 from src.paths import DATA_DIR
 
-def gpm_feature_in_region_expr(region: GPMRegion) -> pl.Expr:
+def legacy_gpm_feature_in_region_expr(region: GPMRegion) -> pl.Expr:
     lat_ok = (
         (pl.col("mean_latitude") >= region.lat_south)
         & (pl.col("mean_latitude") <= region.lat_north)
@@ -27,14 +27,34 @@ def gpm_feature_in_region_expr(region: GPMRegion) -> pl.Expr:
 
     return lat_ok & lon_ok & file_ok
 
+def gpm_feature_in_region_expr(region: GPMRegion) -> pl.Expr:
+    lat_ok = (
+        (pl.col("centroid_lat") >= region.lat_south)
+        & (pl.col("centroid_lat") <= region.lat_north)
+    )
+
+    if region.lon_west <= region.lon_east:
+        lon_ok = (
+            (pl.col("centroid_lon") >= region.lon_west)
+            & (pl.col("centroid_lon") <= region.lon_east)
+        )
+    else:
+        lon_ok = (
+            (pl.col("centroid_lon") >= region.lon_west)
+            | (pl.col("centroid_lon") <= region.lon_east)
+        )
+
+    file_ok = pl.col("source_file").str.contains(f"/{region.key}/", literal=True)
+
+    return lat_ok & lon_ok & file_ok
 
 def load_gpm_feature_stats(
-    only_complete: bool = True,
     min_size: int = 5,
     maxpr_min: float = 10,
-    months = None,
+    # only_complete: bool = True,
+    # months = None,
     ) -> pl.DataFrame:
-    f = DATA_DIR /  "merged.gpm_features.csv"
+    f = DATA_DIR / "gpm_features" / "merged.gpm.febs.csv"
     assert(os.path.isfile(f))
     df = pl.read_csv(f)
 
@@ -46,8 +66,64 @@ def load_gpm_feature_stats(
 
     df = pl.concat(trimmed_dfs)
 
-    if only_complete:
-        df = df.filter(pl.col("is_complete"))
+    # if only_complete:
+    #     df = df.filter(pl.col("is_complete"))
+
+    # if months is not None:
+    #     df = df.filter(
+    #         pl.col("observation_time")
+    #         .str.slice(4, 2) # get the month part of the timestamp
+    #         .cast(pl.Int64)
+    #         .is_in(months)
+    #     )
+
+    df = df.filter(
+        (pl.col("size_px") >= min_size)
+        & (pl.col("max_precip_mm_hr") >= maxpr_min)
+    )
+
+    return df
+
+def load_imerg_feature_stats(
+    min_size: int = 5,
+    maxpr_min: float = 10,
+    # only_complete: bool = True,
+    # months = None,
+    ) -> pl.DataFrame:
+    f = DATA_DIR / "gpm_features" / "merged.imerg.febs.csv"
+    assert(os.path.isfile(f))
+    df = pl.read_csv(f)
+
+    # Unlike GPM, IMERG is stored as global monthly files, so there are no
+    # overlapping regions to stitch together / de-duplicate.
+
+    df = df.filter(
+        (pl.col("size_px") >= min_size)
+        & (pl.col("max_precip_mm_hr") >= maxpr_min)
+    )
+
+    return df
+
+def legacy_load_gpm_feature_stats(
+    # only_complete: bool = True,
+    # min_size: int = 5,
+    # maxpr_min: float = 10,
+    months = None,
+    ) -> pl.DataFrame:
+    f =  DATA_DIR /  "old_data" / "merged.gpm_features.csv"
+    assert(os.path.isfile(f))
+    df = pl.read_csv(f)
+
+    trimmed_dfs = []
+
+    for region_key in get_region_keys():
+        region = get_region(region_key)
+        trimmed_dfs.append(df.filter(legacy_gpm_feature_in_region_expr(region)))
+
+    df = pl.concat(trimmed_dfs)
+
+    # if only_complete:
+    #     df = df.filter(pl.col("is_complete"))
     
     if months is not None:
         df = df.filter(
@@ -57,12 +133,12 @@ def load_gpm_feature_stats(
             .is_in(months)
         )
 
-    df = df.filter(
-        (pl.col("number_pixels") >= min_size)
-        & (pl.col("max_precip") >= maxpr_min)
-        & (abs(pl.col("mean_latitude")) <= 20)
-    )
-    df = df.rename({"largest_10mmhr_cluster_size": "largest_10mmhr_cluster"})
+    # df = df.filter(
+    #     (pl.col("number_pixels") >= min_size)
+    #     & (pl.col("max_precip") >= maxpr_min)
+    #     & (abs(pl.col("mean_latitude")) <= 20)
+    # )
+    # df = df.rename({"largest_10mmhr_cluster_size": "largest_10mmhr_cluster"})
 
     return df
 
