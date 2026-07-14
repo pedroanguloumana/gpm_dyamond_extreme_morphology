@@ -80,6 +80,7 @@ def load_gpm_feature_stats(
     df = df.filter(
         (pl.col("size_px") >= min_size)
         & (pl.col("max_precip_mm_hr") >= maxpr_min)
+        & (abs(pl.col("centroid_lat")) <= 20)
     )
 
     return df
@@ -100,6 +101,7 @@ def load_imerg_feature_stats(
     df = df.filter(
         (pl.col("size_px") >= min_size)
         & (pl.col("max_precip_mm_hr") >= maxpr_min)
+        & (abs(pl.col("centroid_lat")) <= 20)
     )
 
     return df
@@ -173,7 +175,7 @@ def load_combined_features(filename: str = "combined_features.pkl") -> dict[str,
     print(f"Combined features file {filename} not found. Loading individual datasets and combining...")
     combined: dict[str, pl.DataFrame] = {}
 
-    combined["GPM"] = load_gpm_feature_stats(months=[1,2,3])
+    combined["GPM"] = load_gpm_feature_stats()
 
     for model in ["gSAM-4km", "ICON-SAP-5km", "SCREAM-3km", "GEOS-3km"]:
         combined[model.split("-")[0]] = load_dyamond_feature_stats(model)
