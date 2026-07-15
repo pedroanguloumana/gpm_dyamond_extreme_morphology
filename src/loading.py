@@ -88,7 +88,7 @@ def load_gpm_feature_stats(
 def load_imerg_feature_stats(
     min_size: int = 5,
     maxpr_min: float = 10,
-    # only_complete: bool = True,
+    only_fits_in_swath=False,
     # months = None,
     ) -> pl.DataFrame:
     f = DATA_DIR / "gpm_features" / "merged.imerg.febs.csv"
@@ -103,6 +103,36 @@ def load_imerg_feature_stats(
         & (pl.col("max_precip_mm_hr") >= maxpr_min)
         & (abs(pl.col("centroid_lat")) <= 20)
     )
+
+    if only_fits_in_swath:
+        df = df.filter(pl.col('fits_in_swath'))
+
+    return df
+
+def load_dyamond(
+    model: str,
+    resolution: str,
+    min_size: int = 5,
+    maxpr_min: float = 10,
+    only_fits_in_swath=False,
+    ) -> pl.DataFrame:
+    # Files are named "{model}_features_{resolution}deg.csv", e.g.
+    # "ICON-SAP-5km_features_0p1deg.csv".
+    f = DATA_DIR / "dyamond_features" / f"{model}_features_{resolution}deg.csv"
+    assert(os.path.isfile(f))
+    df = pl.read_csv(f)
+
+    # Like IMERG, DYAMOND output is stored as global gridded files, so there are
+    # no overlapping regions to stitch together / de-duplicate.
+
+    df = df.filter(
+        (pl.col("size_px") >= min_size)
+        & (pl.col("max_precip_mm_hr") >= maxpr_min)
+        & (abs(pl.col("centroid_lat")) <= 20)
+    )
+
+    if only_fits_in_swath:
+        df = df.filter(pl.col('fits_in_swath'))
 
     return df
 
