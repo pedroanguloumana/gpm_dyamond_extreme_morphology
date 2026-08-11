@@ -22,9 +22,44 @@ mpl.rcParams.update(
         "font.monospace": ["DejaVu Sans Mono", "Courier New", "Liberation Mono", "monospace"],
         "mathtext.fontset": "dejavusans",
         "axes.unicode_minus": False,
+         # Default font sizes
+        "axes.labelsize": 12,   # xlabel / ylabel
+        "xtick.labelsize": 11,  # x tick labels
+        "ytick.labelsize": 11,  # y tick labels 
+        "axes.labelsize": 11,
+        "axes.titlesize": 13,
+        "legend.fontsize": 12,
+        "legend.handlelength": 1.5
     }
 )
 
+def source_line_params(source):
+    if source in ('GPM', 'IMERG'):
+        color='black'
+        lw = 2.5
+        linestyle='solid'
+    else:
+        lw = 1.5
+        linestyle='solid'
+        match source:
+            case 'GEOS' | 'GEOS-3km':
+                color='#4C72B0'  # blue
+            case 'gSAM' | 'gSAM-4km':
+                color='#DD8452'  # orange
+            case 'ICON' | 'ICON-SAP-5km':
+                color='#55A868'  # green
+            case 'MPAS' | 'MPAS-3km':
+                color='#C44E52'  # red
+            case 'SCREAM' | 'SCREAM-3km':
+                color='#8172B3'  # purple
+            case 'SHiELD' | 'SHiELD-3km':
+                color='#937860'  # brown
+            case _:
+                color=None
+    return {'color': color, 'lw': lw, 'linestyle': linestyle}
+
+def array_midpoints(x):
+    return (x[1:] + x[:-1]) / 2
 
 def discrete_cmap(cmap_name="viridis", N=5, under_color=None):
     cmap = plt.get_cmap(cmap_name)
@@ -120,3 +155,29 @@ def plot_mean_stat(
 def gpm_area_factor():
     factor = (6_371 * np.deg2rad(0.05))**2
     return factor
+
+
+def gpm_area_factor_accurate(latitude, res=0.05):
+    """Per-pixel area [km2] of a res x res deg grid cell centred on `latitude`.
+
+    gpm_area_factor() treats every pixel as a square of side R*dphi, which is only
+    right at the equator: the meridional extent is indeed R*dphi everywhere, but the
+    zonal extent shrinks as cos(lat). This returns the exact area of the spherical
+    quadrilateral, R^2 * dlambda * (sin(lat_north) - sin(lat_south)), which is ~0.5%
+    below the square value at 5 deg and ~6% below it at 20 deg, the edge of the
+    tropical domain.
+
+    Args:
+        latitude: pixel or feature centre latitude in degrees; scalar, numpy array or
+            polars Series (the result follows the input type).
+        res: grid spacing in degrees, assumed equal in latitude and longitude.
+
+    Returns:
+        Per-pixel area in km2, of the same shape as `latitude`.
+    """
+    half = np.deg2rad(res) / 2
+    return (
+        6_371**2
+        * np.deg2rad(res)
+        * (np.sin(np.deg2rad(latitude) + half) - np.sin(np.deg2rad(latitude) - half))
+    )
