@@ -42,8 +42,12 @@ def source_line_params(source):
         lw = 1.5
         linestyle='solid'
         match source:
+            case 'ARPEGE' | 'ARPEGE-NH-2km':
+                color='#DA8BC3'  # pink
             case 'GEOS' | 'GEOS-3km':
                 color='#4C72B0'  # blue
+            case 'GRIST' | 'GRIST-5km':
+                color='#64B5CD'
             case 'gSAM' | 'gSAM-4km':
                 color='#DD8452'  # orange
             case 'ICON' | 'ICON-SAP-5km':
