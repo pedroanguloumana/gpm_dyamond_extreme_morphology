@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: 'Code Supporting "Morphological Characteristics of Tropical Precipitation Features Producing Extreme Instantaneous Rain Rates in GPM and DYAMOND Global Storm Resolving Models"'
+type: software
+authors:
+  - family-names: "Angulo-Umana"
+    given-names: "Pedro"
+  - family-names: "Kim"
+    given-names: "Daehyun"
+  - family-names: "Blossey"
+    given-names: "Peter N."
+  - family-names: "Kim"
+    given-names: "Do-Yeon"
