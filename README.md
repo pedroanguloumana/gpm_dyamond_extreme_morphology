@@ -1,0 +1,1 @@
+Code base for [Morphological Characteristics of Tropical Precipitation Features Producing Extreme Instantaneous Rain Rates in GPM and DYAMOND Global Storm Resolving Models](https://doi.org/10.1029/2026GL124306)
